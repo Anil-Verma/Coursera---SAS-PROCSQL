@@ -1,0 +1,110 @@
+*creating the libname sq****;
+libname sq '/home/PATH/ESQ1M6/data';
+
+***		creating A TABLE FROM EXISTING TABLE		***;
+PROC SQL NUMBER;
+CREATE TABLE WORK.HIGHCREDIT AS
+	SELECT FIRSTNAME,
+			LASTNAME,
+			USERID,
+			CREDITSCORE
+	FROM SQ.CUSTOMER(OBS=1000)
+	WHERE CREDITSCORE > 700;
+QUIT;
+
+
+*** ESTIMATING TOP5 STATES FOR POPULATION ****;
+
+PROC SQL OUTOBS=5;
+CREATE TABLE Top5States AS 
+	SELECT NAME LABEL="STATE NAME",
+			POPESTIMATE1 FORMAT=COMMA14. LABEL="POPULATION ESTIMATE"
+	FROM SQ.STATEPOPULATION
+	ORDER BY POPESTIMATE1 DESC;
+QUIT;
+
+title "Next Year's Top 5 State Population Estimate";
+footnote "Created on %left(%qsysfunc(today(),weekdate.))";
+proc sgplot data=Top5States; /*<------------Top5States table from above*/
+   vbar Name / response=PopEstimate1 /*<----Specifies the numeric response value*/
+			   categoryorder=respdesc /*<---Specify the order in which the columns are arranged*/
+               dataskin=matte /*<-----------Specifies a special effect to be used on the bars*/
+			   fillattrs=(color=bigb);/*<---Specifies the fill color*/
+run;
+title;
+footnote;
+
+
+/****		CREATING TABLE STRUCTURE WITH LIKE CLAUSE	****/
+PROC SQL;
+CREATE TABLE HIGHCREDIT2 
+	LIKE SQ.CUSTOMER(KEEP=FIRSTNAME LASTNAME USERID CREDITSCORE);
+QUIT;
+	
+
+/****		CREATING TABLE STRUCTURE EACH STEP	****/
+
+PROC SQL;
+	CREATE TABLE WORK.EMPLOYEE
+		(	FIRSTNAME CHAR(20),
+			LASTNAME CHAR(20),
+			DOB DATE FORMAT=MMDDYY10.,
+			EMPID NUM FORMAT=Z6.
+		);
+QUIT;
+
+
+** INSERTING DATA INTO ANOTHER TABLE USING QUERY***;
+PROC SQL;
+	INSERT INTO WORK.HIGHCREDIT2
+		(FIRSTNAME, LASTNAME, USERID, CREDITSCORE)
+			SELECT FIRSTNAME, LASTNAME,
+					USERID, CREDITSCORE
+			FROM SQ.CUSTOMER
+			WHERE CREDITSCORE > 700;
+QUIT;
+
+
+
+**** INSERTING RAW VALUES INTO TABLE ***;
+PROC SQL;
+	INSERT INTO EMPLOYEE
+		(FIRSTNAME, LASTNAME, DOB, EMPID)
+			VALUES("DIEGO", "LOPEZ", "01SEP1980"D, 1280)
+			VALUES("OMAR", "FAYED", "21MAR1982"D, 1281);
+QUIT;
+
+
+
+
+/************* ACTIVITY			**************/
+
+PROC SQL;
+CREATE TABLE HIGHCREDIT3 
+	LIKE SQ.CUSTOMER(KEEP=FIRSTNAME LASTNAME USERID CREDITSCORE);
+QUIT;
+
+
+PROC SQL;
+	INSERT INTO WORK.HIGHCREDIT3 
+		(FIRSTNAME, LASTNAME, USERID, CREDITSCORE)
+			SELECT FIRSTNAME, LASTNAME,
+					USERID, CREDITSCORE
+			FROM SQ.CUSTOMER
+			WHERE CREDITSCORE > 700;
+QUIT;
+
+
+proc sql;
+insert into highcredit3
+    set FirstName="ANIL",  
+	    LastName="VERMA",   
+		UserID="67899",    
+		CreditScore=798; 
+quit;
+
+
+*** DROPPING THE TABLE HIGHCREDIT3		***;
+PROC SQL;
+	DROP TABLE HIGHCREDIT3;
+QUIT;
