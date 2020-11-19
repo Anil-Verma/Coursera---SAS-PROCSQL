@@ -1,0 +1,173 @@
+*creating the libname sq****;
+libname sq '/home/PATH/ESQ1M6/data';
+
+
+/*********		FIND OUT THE CUSOTMERS % WRT THE STATE POPULATION   *******/
+
+***	CREATE A TEMPORARY TABLE  ***;
+PROC SQL;
+	CREATE TABLE TOTALCUSTOMER AS
+		SELECT STATE, COUNT(*) AS TOTAL_CUSTOMER
+		FROM SQ.CUSTOMER
+		GROUP BY STATE;
+QUIT;
+
+
+****	JOINING TABLE WITH STATE POPULATION	**;
+PROC SQL OUTOBS=10 NUMBER;
+	SELECT C.STATE, C.TOTAL_CUSTOMER FORMAT=COMMA12.,
+			S.ESTIMATEBASE FORMAT=COMMA16.,
+			C.TOTAL_CUSTOMER/S.ESTIMATEBASE AS PCT_CUSTOMER FORMAT=PERCENT7.4
+	FROM TOTALCUSTOMER AS C INNER JOIN SQ.STATEPOPULATION S
+		ON C.STATE = S.NAME
+	ORDER BY CALCULATED PCT_CUSTOMER DESC;
+QUIT;
+
+
+/***********		SOLUTION USING INLINE VIEWS			**************/
+
+** EXPLORING THE TABLE - CUSTOMER, STATEPOPULATION***;
+PROC SQL OUTOBS=10 NUMBER;
+	TITLE "TABLE : CUSTOMER TABLE";
+	SELECT FIRSTNAME, MIDDLENAME, LASTNAME, STATE
+	FROM SQ.CUSTOMER;
+
+	TITLE "TABLE : STATE POPULATION";
+	SELECT NAME, ESTIMATEBASE
+	FROM SQ.STATEPOPULATION;
+QUIT;
+
+
+**********************************;
+**	USING INLINE SOLUTION	**;
+
+PROC SQL NUMBER;
+	SELECT C.STATE, C.TOTAL_CUSTOMER FORMAT=COMMA12.,
+			S.ESTIMATEBASE FORMAT=COMMA16.,
+			C.TOTAL_CUSTOMER/S.ESTIMATEBASE AS PCT_CUSTOMER FORMAT=PERCENT7.4
+	FROM (
+			SELECT STATE, 
+					COUNT(*) AS TOTAL_CUSTOMER
+			FROM SQ.CUSTOMER
+			GROUP BY STATE
+		) AS C INNER JOIN SQ.STATEPOPULATION AS S
+		ON C.STATE = S.NAME
+		ORDER BY PCT_CUSTOMER;
+QUIT;
+			
+
+/************		CREATING A VIEW		********/
+PROC SQL;
+	CREATE VIEW SQ.TOTALCUSTOMER AS 
+		SELECT STATE, COUNT(*) AS TOTAL_CUSTOMER
+		FROM SQ.CUSTOMER
+		GROUP BY STATE;
+QUIT;
+
+
+
+/********		ACTIVITY 1		**********/
+title "Total Customers by State";
+proc sql;
+select *
+    from totalcustomer
+	order by Total_Customer desc;
+quit;
+
+
+proc sgplot data=totalcustomer;
+	hbar State / response=Total_Customer
+                 dataskin=crisp
+                 categoryorder=respdesc;
+    xaxis label="Total Customer Count";
+quit;
+title;
+
+
+/********	ACTIVITY 2	*************/
+
+TITLE 'HIGH CREDIT THRESHOLD BY ZIP CODE';
+PROC SQL INOBS=1000 NUMBER;
+	SELECT ZIP FORMAT=Z5.,
+			SUM(AVG(CREDITSCORE), (2*STD(CREDITSCORE))) AS HIGH_ZIP_CREDIT
+	FROM SQ.CUSTOMER
+	WHERE CREDITSCORE IS NOT NULL
+	GROUP BY ZIP;
+QUIT;
+
+***	CREATING AN INLINE VIEW***;
+
+PROC SQL NUMBER;
+TITLE "customers havING an extremely high credit score relative to other customers in their ZIP code";
+	SELECT C.CUSTOMERID, C.ZIP FORMAT=Z5., C.CREDITSCORE,
+			Z.HIGH_ZIP_CREDIT "HIGH ZIP CREDIT" FORMAT=5.2
+	FROM SQ.CUSTOMER AS C INNER JOIN ( 
+										SELECT ZIP FORMAT=Z5.,
+												SUM(AVG(CREDITSCORE), (2*STD(CREDITSCORE))) AS HIGH_ZIP_CREDIT
+										FROM SQ.CUSTOMER
+										WHERE CREDITSCORE IS NOT NULL
+										GROUP BY ZIP
+									) AS Z
+	ON C.ZIP = Z.ZIP
+	WHERE C.CREDITSCORE > Z.HIGH_ZIP_CREDIT
+	ORDER BY C.ZIP, CREDITSCORE DESC;
+QUIT;
+			
+/******************			ACTIVITY 3				*********
+****		determine which employees have the highest salary 
+****		for their job title in every state.
+*/
+
+**** CALCULATE MAXIMUM SALARY FOR EACH JOB TITILE IN EACH STATE **;
+
+PROC SQL NUMBER;
+	SELECT UPCASE(STATE) AS STATE, 
+			JOBTITLE,
+			MAX(SALARY) AS MAX_SALARY FORMAT=DOLLAR16.
+	FROM SQ.EMPLOYEE
+	WHERE STATE IS NOT NULL
+	GROUP BY UPCASE(STATE), JOBTITLE
+	ORDER BY STATE, JOBTITLE;
+QUIT;
+
+
+
+proc sql;
+select upcase(State) as State, 
+                 JobTitle, max(Salary) as MaxJobSalary
+              from sq.employee
+              where State is not null
+              group by State, JobTitle;
+quit;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
